@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  spark-master:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: distributed-billing-spark:local
+    container_name: spark-master
+    command: bash -c "start-master.sh --host spark-master"
+    # Only needed for local mode; harmless if ENVIRONMENT=aws (you won't use it)
+    env_file:
+      - ../.env
+    environment:
+      - ENVIRONMENT
+      - SPARK_MASTER_URL_LOCAL
+    ports:
+      - "7077:7077"   # Spark master RPC
+      - "8080:8080"   # Spark UI
+    volumes:
+      - ../data:/app/data
+
+  spark-worker:
+    image: distributed-billing-spark:local
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    # Workers always connect to whatever SPARK_MASTER_URL_LOCAL is set to
+    env_file:
+      - ../.env
+    environment:
+      - SPARK_MASTER_URL_LOCAL
+    command: bash -c "start-worker.sh ${SPARK_MASTER_URL_LOCAL}"
+    volumes:
+      - ../data:/app/data
+
+  spark-submit:
+    image: distributed-billing-spark:local
+    container_name: spark-submit
+    depends_on:
+      - spark-master
+      - spark-worker
+    entrypoint: ["/app/scripts/submit_spark_job.sh"]
+    env_file:
+      - ../.env
+    # Mount .env so load_dotenv() can also pick it up in Python
+    volumes:
+      - ../.env:/app/.env
+      - ../data:/app/data
+      - ../src:/app/src
