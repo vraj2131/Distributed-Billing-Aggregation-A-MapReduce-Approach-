@@ -4,49 +4,6 @@ A MapReduce-style billing aggregator for API logs, powered by Apache Spark. Supp
 
 ---
 
-## 📁 Directory Structure
-
-```
-distributed-billing/
-├── .gitignore
-├── README.md
-├── .env.template
-├── requirements.txt
-│
-├── configs/                       # Kubernetes manifests
-│   └── k8s/
-│       ├── spark-serviceaccount.yaml
-│       ├── fluent-bit-config.yaml
-│       ├── fluent-bit-daemonset.yaml
-│       ├── billing-cronjob.yaml   # Scheduled CronJob
-│       └── billing-job.yaml       # On-demand Job
-│
-├── docker/
-│   └── spark/
-│       ├── Dockerfile             # Spark + Python image
-│       └── docker-compose.yml     # Local Compose setup
-│
-├── scripts/
-│   ├── run_local.sh               # `docker-compose up --build`
-│   └── submit_spark_job.sh        # Spark-submit wrapper
-│
-├── src/
-│   ├── mapreduce_billing/
-│   │   ├── __init__.py            # Python package
-│   │   ├── naive_aggregation.py   # Single-process baseline
-│   │   ├── map_reduce.py          # Core Map & Reduce fns
-│   │   └── spark_job.py           # Spark entrypoint
-│   └── utils/
-│       ├── config.py              # Loads .env → Config class
-│       └── io.py                  # Reads from local or S3
-│
-└── tests/
-    ├── test_naive.py             # Unit tests for naive_aggregation
-    └── test_mapreduce.py         # Logic tests via FakeRDD
-```
-
----
-
 ## ⚙️ Prerequisites
 
 * **Docker** & **Docker-Compose** (for local)
@@ -154,7 +111,6 @@ pytest tests/test_mapreduce.py
 1. **Tag & push** Docker image to ECR:
 
    ```bash
-   ```
 
 docker build -t \$ECR\_URI\:latest -f docker/spark/Dockerfile .
 docker push \$ECR\_URI\:latest
