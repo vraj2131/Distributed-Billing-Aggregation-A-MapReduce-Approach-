@@ -1,0 +1,26 @@
+# configs/k8s/billing-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: billing-on-demand
+  namespace: default
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: spark-serviceaccount
+      restartPolicy: OnFailure
+      volumes:
+        - name: app-env
+          secret:
+            secretName: app-env
+      containers:
+        - name: spark-submit
+          image: distributed-billing-spark:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          volumeMounts:
+            - name: app-env
+              mountPath: /app/.env
+              subPath: .env
+          command: ["/bin/bash", "-c", "/app/scripts/submit_spark_job.sh"]

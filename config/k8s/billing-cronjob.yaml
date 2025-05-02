@@ -1,0 +1,30 @@
+# configs/k8s/billing-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: billing-aggregation
+  namespace: default
+spec:
+  schedule: "0 0 * * *"           # every day at midnight
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: spark-serviceaccount
+          restartPolicy: OnFailure
+          volumes:
+            - name: app-env
+              secret:
+                secretName: app-env
+          containers:
+            - name: spark-submit
+              image: distributed-billing-spark:latest
+              imagePullPolicy: IfNotPresent
+              workingDir: /app
+              volumeMounts:
+                - name: app-env
+                  mountPath: /app/.env
+                  subPath: .env
+              command: ["/bin/bash", "-c", "/app/scripts/submit_spark_job.sh"]
