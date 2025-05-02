@@ -1,103 +1,82 @@
 # Distributed Billing Aggregation Pipeline
 
-A MapReduce-style billing aggregator for API logs, powered by Apache Spark. Supports both local Docker-Compose testing and Kubernetes cluster mode (Kind/Docker-Desktop or AWS EKS).
+This project implements a scalable billing aggregation system using Apache Spark. We ingest raw API logs, compute per-user total durations and costs for different API tasks via MapReduce functions, and compare a naive single-process baseline with a distributed Spark implementation. Our goal is to provide an end-to-end pipeline that can run locally for development (via Docker Compose) and in production on Kubernetes—either on your laptop (Kind/Docker Desktop) or AWS EKS—with dynamic executor allocation and integrated logging.
 
 ---
 
 ## ⚙️ Prerequisites
 
-* **Docker** & **Docker-Compose** (for local)
-* **kubectl** & **Kubernetes** (Docker-Desktop, Kind, or EKS)
+* **Docker** & **Docker Compose** (for local development)
+* **kubectl** & **Kubernetes** (Kind/Docker Desktop or EKS)
 * **AWS CLI** & **ECR permissions** (if deploying to EKS)
-* **Python 3.8+** with `pip` (for local testing & running scripts)
+* **Python 3.8+** with `pip` (for local testing & scripts)
 
 ---
 
 ## 📝 Setup
 
-### 1. Environment Variables
+1. **Environment Variables**
+   Ensure you have a `.env` file at the project root containing all required settings (ENVIRONMENT, Spark URLs, log paths, per-task rates, AWS credentials, LOG\_LEVEL).
 
-Copy and customize:
-
-```bash
-cp .env.template .env
-# Edit .env:
-# - ENVIRONMENT=local (or aws)
-# - SPARK_MASTER_URL_LOCAL/s3 endpoints
-# - AWS_ACCESS_KEY_ID, SECRET, REGION
-# - RATE_<task> values
-```
-
-### 2. Install Python Dependencies (optional for local testing)
-
-Activate your venv and install:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
----
-
-## 🚀 Local Testing (Docker-Compose)
-
-1. **Build & launch** everything locally:
+2. **Install Python Dependencies** (for local tests):
 
    ```bash
-   cd docker
-   docker-compose up --build
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements.txt
    ```
-
-2. **run\_local.sh** will:
-
-   * Build the Spark image
-   * Start a Spark master + worker container
-   * Run your Spark job in client mode
-   * Tear down when complete
-
-3. **Check output** in `data/billing.txt` (or printed to console).
 
 ---
 
-## 🐳 Kubernetes Cluster Mode (Local or AWS)
+## 🚀 Local Development
 
-#### A) Prepare `.env` Secret
+Bring up a local Spark cluster and run the aggregation:
 
 ```bash
-kubectl create secret generic app-env \
-  --from-file=.env=./.env
+cd docker
+docker-compose up --build
 ```
 
-#### B) Apply Manifests
+This spins up a Spark master, worker, and executes the Spark job in client mode. Results are written to `data/billing.txt`.
+
+---
+
+## 🐳 Kubernetes Cluster Mode
+
+### 1. Create `.env` Secret
+
+```bash
+kubectl create secret generic app-env --from-file=.env=./.env
+```
+
+### 2. Deploy Manifests
 
 ```bash
 kubectl apply -f configs/k8s/spark-serviceaccount.yaml
 kubectl apply -f configs/k8s/fluent-bit-config.yaml
 kubectl apply -f configs/k8s/fluent-bit-daemonset.yaml
-kubectl apply -f configs/k8s/billing-cronjob.yaml    # scheduled runs
-# or on-demand:
+kubectl apply -f configs/k8s/billing-cronjob.yaml   # schedule
+# or for ad-hoc:
 kubectl apply -f configs/k8s/billing-job.yaml
 ```
 
-#### C) Monitor Logs
+### 3. Monitor Logs
 
-* **Local**: logs appear via DaemonSet stdout on each node.
+* **Local**: DaemonSet outputs to node logs.
 * **AWS**: Fluent Bit ships logs to CloudWatch under `/kubernetes/fluent-bit-logs`.
 
-You can also port-forward the Spark UI:
+Port-forward the Spark UI if needed:
 
 ```bash
-kubectl get pods --selector=app=spark-driver
-kubectl port-forward <driver-pod> 4040:4040
+kubectl port-forward $(kubectl get pod -l spark-app=billing-aggregation -o name) 4040:4040
 ```
 
 ---
 
-## 📖 Testing
+## 🧪 Testing
 
-Run pure-Python tests without Spark:
+Run logic tests without Spark:
 
 ```bash
 pytest tests/test_naive.py
@@ -111,25 +90,15 @@ pytest tests/test_mapreduce.py
 1. **Tag & push** Docker image to ECR:
 
    ```bash
-
-docker build -t \$ECR\_URI\:latest -f docker/spark/Dockerfile .
-docker push \$ECR\_URI\:latest
-
-```
-2. **Create `app-env`** in EKS (AWS-mode `.env`).
+   docker build -t $ECR_URI:latest -f docker/spark/Dockerfile .
+   docker push $ECR_URI:latest
+   ```
+2. **Create `app-env`** Secret in EKS (with AWS-mode `.env`).
 3. **Apply** the same `configs/k8s/` manifests.
 
-Your Spark job will now run on EKS in cluster mode with dynamic allocation.
-
----
-
-## 🔧 Further Reading
-
-- Spark on Kubernetes: https://spark.apache.org/docs/latest/running-on-kubernetes.html  
-- Fluent Bit → CloudWatch: https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch
+Your Spark job will run on EKS in cluster mode with dynamic allocation.
 
 ---
 
 © 2025 Distributed Billing Aggregation
 
-```
