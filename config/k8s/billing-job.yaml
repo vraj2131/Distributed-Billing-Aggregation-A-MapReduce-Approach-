@@ -11,16 +11,26 @@ spec:
       serviceAccountName: spark-serviceaccount
       restartPolicy: OnFailure
       volumes:
+        # Mount your .env as a Secret so the submit script picks up ENV vars
         - name: app-env
           secret:
             secretName: app-env
+        # HostPath for Spark event logs (on your laptop)
+        - name: spark-event-logs
+          hostPath:
+            path: /Users/vraj21/spark-events    # adjust to your host directory
+            type: DirectoryOrCreate
       containers:
         - name: spark-submit
           image: distributed-billing-spark:latest
           imagePullPolicy: IfNotPresent
           workingDir: /app
           volumeMounts:
+            # .env for load_dotenv()
             - name: app-env
               mountPath: /app/.env
               subPath: .env
+            # Spark event logs directory
+            - name: spark-event-logs
+              mountPath: /app/logs/spark-events
           command: ["/bin/bash", "-c", "/app/scripts/submit_spark_job.sh"]
