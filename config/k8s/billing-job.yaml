@@ -5,31 +5,41 @@ metadata:
   name: billing-on-demand
   namespace: default
 spec:
-  backoffLimit: 1
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
   template:
     spec:
       serviceAccountName: spark-serviceaccount
-      restartPolicy: OnFailure
+      restartPolicy: Never
       volumes:
         # Mount your .env as a Secret so the submit script picks up ENV vars
         - name: app-env
-          secret:
-            secretName: app-env
+          configMap:
+            name: app-env
+        - name: data
+          hostPath:
+            path: /Users/vraj21/Desktop/DIS/data
+            type: DirectoryOrCreate
         # HostPath for Spark event logs (on your laptop)
         - name: spark-event-logs
           hostPath:
-            path: /Users/vraj21/Desktop/DIS/data    # adjust to your host directory
+            path: /Users/vraj21/Desktop/DIS/logs/spark-events    # adjust to your host directory
+            type: DirectoryOrCreate
+        - name: results
+          hostPath:
+            path: /Users/vraj21/Desktop/DIS/data/results
             type: DirectoryOrCreate
       containers:
         - name: spark-submit
           image: distributed-billing-spark:latest
           imagePullPolicy: IfNotPresent
           workingDir: /app
+          envFrom:
+            - configMapRef:
+                name: app-env
           volumeMounts:
-            # .env for load_dotenv()
-            - name: app-env
-              mountPath: /app/.env
-              subPath: .env
+            - name: data
+              mountPath: /app/data
             - name: results
               mountPath: /app/data/results
             # Spark event logs directory

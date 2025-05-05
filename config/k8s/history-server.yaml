@@ -1,0 +1,55 @@
+# configs/k8s/history-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-history
+  template:
+    metadata:
+      labels:
+        app: spark-history
+    spec:
+      serviceAccountName: spark-serviceaccount   # ← your SA here
+      containers:
+        - name: history
+          image: distributed-billing-spark:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPARK_HISTORY_OPTS
+              value: "-Dspark.history.fs.logDirectory=file:///app/logs/spark-events"
+          ports:
+            - containerPort: 18080
+          volumeMounts:
+            - name: spark-event-logs
+              mountPath: /app/logs/spark-events
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /opt/spark/sbin/start-history-server.sh && \
+              tail -F /app/logs/spark-events/*.inprogress
+      volumes:
+        - name: spark-event-logs
+          hostPath:
+            path: /Users/vraj21/Desktop/DIS/logs/spark-events   # adjust to your host
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-history
+  namespace: default
+spec:
+  type: NodePort    # or ClusterIP + port-forward
+  selector:
+    app: spark-history
+  ports:
+    - name: web
+      port: 18080
+      targetPort: 18080
+      # nodePort: 30080   # optionally pin a NodePort

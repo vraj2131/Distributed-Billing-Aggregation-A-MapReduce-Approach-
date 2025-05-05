@@ -1,0 +1,66 @@
+# kind-spark-5workers.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 7077   # Spark master RPC
+        hostPort:      7077
+        protocol:      TCP
+      - containerPort: 8080   # Spark master Web UI
+        hostPort:      8080
+        protocol:      TCP
+      - containerPort: 4040   # Driver UI (first app)
+        hostPort:      4040
+        protocol:      TCP
+      - containerPort: 18080  # History Server UI
+        hostPort:      18080
+        protocol:      TCP
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results
+
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/vraj21/Desktop/DIS/data
+        containerPath: /Users/vraj21/Desktop/DIS/data
+      - hostPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+        containerPath: /Users/vraj21/Desktop/DIS/logs/spark-events
+      - hostPath: /Users/vraj21/Desktop/DIS/data/results
+        containerPath: /Users/vraj21/Desktop/DIS/data/results

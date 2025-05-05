@@ -13,6 +13,11 @@ if [ "$ENVIRONMENT" = "aws" ]; then
   INPUT_PATH="$LOG_SOURCE_PATH_AWS"
   OUTPUT_DIR="$OUTPUT_DIR_AWS"
   DYN_ENABLED="true"
+  K8S_IMAGE="${SPARK_K8S_IMAGE:-$DEFAULT_K8S_IMAGE}"
+  K8S_IMAGE_CONF=( \
+    --conf spark.kubernetes.driver.container.image="${K8S_IMAGE}" \
+    --conf spark.kubernetes.executor.container.image="${K8S_IMAGE}" \
+  )
 
 elif [ "$ENVIRONMENT" = "kub" ]; then
   MASTER_URL="$SPARK_MASTER_URL_LOCAL_K8S"
@@ -20,6 +25,11 @@ elif [ "$ENVIRONMENT" = "kub" ]; then
   INPUT_PATH="$LOG_SOURCE_PATH_LOCAL"
   OUTPUT_DIR="$OUTPUT_DIR_LOCAL"
   DYN_ENABLED="true"
+  K8S_IMAGE="${SPARK_K8S_IMAGE:-$DEFAULT_K8S_IMAGE}"
+  K8S_IMAGE_CONF=( \
+    --conf spark.kubernetes.driver.container.image="${K8S_IMAGE}" \
+    --conf spark.kubernetes.executor.container.image="${K8S_IMAGE}" \
+  )
 
 else
   # default to standalone local
@@ -50,6 +60,7 @@ spark-submit \
   --conf spark.dynamicAllocation.enabled="${DYN_ENABLED}" \
   --conf spark.dynamicAllocation.shuffleTracking.enabled="${DYN_ENABLED}" \
   ${EXECUTOR_INSTANCES_CONF:-} \
+  "${K8S_IMAGE_CONF[@]:-}" \
   --conf spark.eventLog.enabled="${SPARK_EVENT_LOG_ENABLED}" \
   --conf spark.eventLog.dir="${SPARK_EVENT_LOG_DIR}" \
   --conf spark.driver.host="${SPARK_DRIVER_HOST}" \

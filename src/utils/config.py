@@ -11,7 +11,7 @@ load_dotenv()
 
 class Config:
     # Environment mode: 'local' or 'aws'
-    ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "kub").lower()
 
     # Spark master URLs
     SPARK_MASTER_URL_LOCAL = os.getenv("SPARK_MASTER_URL_LOCAL")
@@ -39,7 +39,7 @@ class Config:
 
     # Only meaningful when dynamic allocation is enabled
     SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS      = (
-        os.getenv("SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS", "1")
+        os.getenv("SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS", "2")
         if ENVIRONMENT in ("kub", "aws") else None
     )
     SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS  = (
@@ -75,6 +75,11 @@ class Config:
     
     # Logging level
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+    
+    SPARK_K8S_IMAGE = os.getenv(
+        "SPARK_K8S_IMAGE",
+        "distributed-billing-spark:latest"
+    )
 
     # Input path (local or AWS)
     LOG_SOURCE_PATH = (

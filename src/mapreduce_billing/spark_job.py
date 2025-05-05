@@ -1,100 +1,3 @@
-# # src/mapreduce_billing/spark_job.py
-# """
-# Spark job entry-point for billing aggregation on Kubernetes (local or AWS):
-# - Dynamically selects Spark master URL based on ENVIRONMENT
-# - Always uses dynamic allocation with shuffle tracking
-# - Reads API logs from a local file or S3
-# - Computes per-user total duration and cost using map_records & reduce_records
-# """
-# import os
-# import argparse
-# from dotenv import load_dotenv
-# from pyspark.sql import SparkSession
-# from .map_reduce import map_records, reduce_records
-
-
-# def build_spark_session():
-#     # Load environment variables
-#     load_dotenv()
-#     env = os.getenv("ENVIRONMENT", "local").lower()
-
-#     # Select master URL per environment
-#     if env == "aws":
-#         master_url = os.getenv("SPARK_MASTER_URL_AWS")
-#     else:
-#         master_url = os.getenv("SPARK_MASTER_URL_LOCAL")
-
-#     app_name = os.getenv("SPARK_APP_NAME", "billing-aggregation")
-#     builder = SparkSession.builder.master(master_url).appName(app_name)
-
-#     # Enable dynamic allocation and shuffle tracking
-#     builder = builder.config("spark.dynamicAllocation.enabled", "true")
-#     builder = builder.config("spark.dynamicAllocation.shuffleTracking.enabled", "true")
-
-#     # Dynamic allocation tuning
-#     builder = builder.config(
-#         "spark.dynamicAllocation.minExecutors",
-#         os.getenv("SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS", "1")
-#     )
-#     builder = builder.config(
-#         "spark.dynamicAllocation.initialExecutors",
-#         os.getenv("SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS", "2")
-#     )
-#     builder = builder.config(
-#         "spark.dynamicAllocation.maxExecutors",
-#         os.getenv("SPARK_DYNAMIC_ALLOCATION_MAX_EXECUTORS", "10")
-#     )
-#     builder = builder.config(
-#         "spark.dynamicAllocation.executorIdleTimeout",
-#         os.getenv("SPARK_DYNAMIC_ALLOCATION_EXECUTOR_IDLE_TIMEOUT", "60s")
-#     )
-
-#     # Common resource settings
-#     builder = builder.config(
-#         "spark.driver.memory",
-#         os.getenv("SPARK_DRIVER_MEMORY", "2g")
-#     )
-#     builder = builder.config(
-#         "spark.executor.memory",
-#         os.getenv("SPARK_EXECUTOR_MEMORY", "4g")
-#     )
-#     builder = builder.config(
-#         "spark.executor.cores",
-#         os.getenv("SPARK_EXECUTOR_CORES", "2")
-#     )
-
-#     return builder.getOrCreate()
-
-
-# def main():
-#     parser = argparse.ArgumentParser(
-#         description="Spark billing aggregation job on Kubernetes"
-#     )
-#     parser.add_argument(
-#         "--input-path", required=True,
-#         help="Path to API logs (local or S3 URI)"
-#     )
-#     args = parser.parse_args()
-
-#     spark = build_spark_session()
-#     sc = spark.sparkContext
-
-#     # Read log lines and apply MapReduce
-#     lines_rdd = sc.textFile(args.input_path)
-#     user_pairs = map_records(lines_rdd)
-#     user_totals = user_pairs.reduceByKey(reduce_records)
-
-#     # Output results
-#     for user, (duration, cost) in sorted(user_totals.collect(), key=lambda x: x[0]):
-#         print(f"{user}: total_duration={duration}ms, total_cost={cost:.2f}")
-
-#     spark.stop()
-
-
-# if __name__ == "__main__":
-#     main()
-
-# src/mapreduce_billing/spark_job.py
 """
 Spark job entry-point for billing aggregation on Kubernetes (local or AWS):
 - Dynamically selects Spark master URL based on ENVIRONMENT
@@ -132,7 +35,7 @@ def build_spark_session(logger):
     """
     Build and return a SparkSession configured for dynamic allocation.
     """
-    env = os.getenv("ENVIRONMENT", "local").lower()
+    env = os.getenv("ENVIRONMENT", "kub").lower()
     if env == "aws":
         master_url = os.getenv("SPARK_MASTER_URL_AWS")
     elif env == "kub":
@@ -157,7 +60,7 @@ def build_spark_session(logger):
             # Dynamic allocation settings
             builder = builder.config(
                 "spark.dynamicAllocation.minExecutors",
-                os.getenv("SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS", "1")
+                os.getenv("SPARK_DYNAMIC_ALLOCATION_MIN_EXECUTORS", "2")
             )
             builder = builder.config(
                 "spark.dynamicAllocation.initialExecutors",
@@ -171,6 +74,15 @@ def build_spark_session(logger):
                 "spark.dynamicAllocation.executorIdleTimeout",
                 os.getenv("SPARK_DYNAMIC_ALLOCATION_EXECUTOR_IDLE_TIMEOUT", "60s")
             )
+            
+            k8s_image = os.getenv("SPARK_K8S_IMAGE")
+            if k8s_image:
+                builder = (
+                    builder
+                    .config("spark.kubernetes.driver.container.image", k8s_image)
+                    .config("spark.kubernetes.executor.container.image", k8s_image)
+                )
+            
         builder = builder.config("spark.driver.host", os.getenv("SPARK_DRIVER_HOST")) \
     .config("spark.driver.port", os.getenv("SPARK_DRIVER_PORT")) \
     .config("spark.driver.bindAddress", os.getenv("SPARK_DRIVER_BIND_ADDRESS"))
