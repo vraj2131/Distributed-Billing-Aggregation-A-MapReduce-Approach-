@@ -52,3 +52,5 @@ Thumbs.db
 
 # Test outputs
 tests/__pycache__/
+
+*.txt

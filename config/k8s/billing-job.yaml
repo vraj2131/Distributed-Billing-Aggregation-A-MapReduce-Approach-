@@ -18,7 +18,7 @@ spec:
         # HostPath for Spark event logs (on your laptop)
         - name: spark-event-logs
           hostPath:
-            path: /Users/vraj21/spark-events    # adjust to your host directory
+            path: /Users/vraj21/Desktop/DIS/data    # adjust to your host directory
             type: DirectoryOrCreate
       containers:
         - name: spark-submit
@@ -30,6 +30,8 @@ spec:
             - name: app-env
               mountPath: /app/.env
               subPath: .env
+            - name: results
+              mountPath: /app/data/results
             # Spark event logs directory
             - name: spark-event-logs
               mountPath: /app/logs/spark-events

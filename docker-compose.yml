@@ -1,0 +1,89 @@
+services:
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: distributed-billing-spark:local
+    container_name: spark-master
+    networks:
+      - spark-net
+    command: bash -c "/opt/spark/sbin/start-master.sh --host spark-master && \
+        tail -F /opt/spark/logs/spark--org.apache.spark.deploy.master.Master-*.out"
+    # Only needed for local mode; harmless if ENVIRONMENT=aws (you won't use it)
+    env_file:
+      - ./.env
+    environment:
+      - ENVIRONMENT
+      - SPARK_MASTER_URL_LOCAL
+    ports:
+      - "7077:7077"   # Spark master RPC
+      - "8080:8080"   # Spark UI
+    volumes:
+      - ./data:/app/data
+
+  spark-worker:
+    image: distributed-billing-spark:local
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    # Workers always connect to whatever SPARK_MASTER_URL_LOCAL is set to
+    env_file:
+      - ./.env
+    environment:
+      SPARK_MASTER_URL_LOCAL: "${SPARK_MASTER_URL_LOCAL}"
+      SPARK_WORKER_CORES:     "2"
+      SPARK_WORKER_MEMORY:    "4g"
+    networks:
+      - spark-net
+    command: bash -c "/opt/spark/sbin/start-worker.sh ${SPARK_MASTER_URL_LOCAL} && \
+        tail -F /opt/spark/logs/spark--org.apache.spark.deploy.worker.Worker-*.out"
+    ports:
+      - "8081:8081" 
+    volumes:
+      - ./data:/app/data
+
+  spark-submit:
+    image: distributed-billing-spark:local
+    container_name: spark-submit
+    hostname: spark-submit  
+    depends_on:
+      - spark-master
+      - spark-worker
+    entrypoint: ["/app/scripts/submit_spark_job.sh"]
+    networks:
+      - spark-net
+    env_file:
+      - ./.env
+    # Mount .env so load_dotenv() can also pick it up in Python
+    volumes:
+      - ./.env:/app/.env
+      - ./data:/app/data
+      - ./data/results:/app/data/results
+      - ./src:/app/src
+      - ./logs/spark-events:/app/logs/spark-events
+    working_dir: /app
+    ports:
+      - "${SPARK_DRIVER_PORT}:${SPARK_DRIVER_PORT}"
+  
+  history-server:
+    image: distributed-billing-spark:local
+    container_name: spark-history
+    depends_on:
+      - spark-master
+    command: bash -c "mkdir -p /app/logs/spark-events &&
+        /opt/spark/sbin/start-history-server.sh &&
+        tail -F /app/logs/spark-events/*.inprogress"
+    env_file:
+      - ./.env
+    # assume you enabled event logging to /app/logs/spark-events
+    volumes:
+      - ./logs/spark-events:/app/logs/spark-events
+    environment:
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:///app/logs/spark-events
+    ports:
+      - "18080:18080" 
+
+networks:
+  spark-net:
+    driver: bridge
+      
