@@ -29,11 +29,22 @@ spec:
           hostPath:
             path: /Users/vraj21/Desktop/DIS/data/results
             type: DirectoryOrCreate
+        - name: spark-upload
+          emptyDir: {}
       containers:
         - name: spark-submit
           image: distributed-billing-spark:latest
           imagePullPolicy: IfNotPresent
           workingDir: /app
+          env:
+            - name: SPARK_CONF_spark.kubernetes.container.image
+              value: distributed-billing-spark:latest
+
+            - name: SPARK_CONF_spark.kubernetes.authenticate.driver.serviceAccountName
+              value: spark-serviceaccount
+
+            - name: SPARK_CONF_spark.kubernetes.file.upload.path
+              value: /tmp/spark-upload
           envFrom:
             - configMapRef:
                 name: app-env
@@ -45,4 +56,6 @@ spec:
             # Spark event logs directory
             - name: spark-event-logs
               mountPath: /app/logs/spark-events
+            - name: spark-upload
+              mountPath: /tmp/spark-upload
           command: ["/bin/bash", "-c", "/app/scripts/submit_spark_job.sh"]

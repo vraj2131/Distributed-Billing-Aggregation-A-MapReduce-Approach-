@@ -80,6 +80,9 @@ class Config:
         "SPARK_K8S_IMAGE",
         "distributed-billing-spark:latest"
     )
+    SPARK_K8S_UPLOAD_PATH = os.getenv(
+        "SPARK_K8S_UPLOAD_PATH"
+    )
 
     # Input path (local or AWS)
     LOG_SOURCE_PATH = (

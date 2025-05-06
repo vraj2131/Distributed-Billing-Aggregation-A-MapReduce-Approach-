@@ -76,16 +76,18 @@ def build_spark_session(logger):
             )
             
             k8s_image = os.getenv("SPARK_K8S_IMAGE")
+            k8s_upload_path = os.getenv("SPARK_K8S_UPLOAD_PATH")
+            builder = builder.config("spark.kubernetes.file.upload.path", k8s_upload_path)
             if k8s_image:
                 builder = (
                     builder
                     .config("spark.kubernetes.driver.container.image", k8s_image)
                     .config("spark.kubernetes.executor.container.image", k8s_image)
                 )
-            
-        builder = builder.config("spark.driver.host", os.getenv("SPARK_DRIVER_HOST")) \
-    .config("spark.driver.port", os.getenv("SPARK_DRIVER_PORT")) \
-    .config("spark.driver.bindAddress", os.getenv("SPARK_DRIVER_BIND_ADDRESS"))
+        if env not in ("kub", "aws"):    
+            builder = builder.config("spark.driver.host", os.getenv("SPARK_DRIVER_HOST")) \
+        .config("spark.driver.port", os.getenv("SPARK_DRIVER_PORT")) \
+        .config("spark.driver.bindAddress", os.getenv("SPARK_DRIVER_BIND_ADDRESS"))
         # Resource settings
         builder = builder.config(
             "spark.driver.memory",
