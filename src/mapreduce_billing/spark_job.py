@@ -1,11 +1,3 @@
-"""
-Spark job entry-point for billing aggregation on Kubernetes (local or AWS):
-- Dynamically selects Spark master URL based on ENVIRONMENT
-- Always uses dynamic allocation with shuffle tracking
-- Reads API logs from a local file or S3
-- Computes per-user total duration and cost using map_records & reduce_records
-- Includes exception handling and structured logging
-"""
 import os
 from datetime import datetime
 import sys
@@ -17,9 +9,6 @@ from mapreduce_billing.map_reduce import map_records, reduce_records
 
 
 def setup_logging():
-    """
-    Configure logging based on LOG_LEVEL env var.
-    """
     load_dotenv()
     level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     level = getattr(logging, level_str, logging.INFO)
