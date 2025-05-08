@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Load .env if present
+# Load .env if present, remove "local://", when running in local mode from line 125
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
@@ -20,19 +20,9 @@ if [ "$ENVIRONMENT" = "aws" ]; then
     --conf spark.kubernetes.driver.container.image="${K8S_IMAGE}" \
     --conf spark.kubernetes.executor.container.image="${K8S_IMAGE}" \
   )
-    K8S_DATA_VOLUME_CONF=( \
-    --conf spark.kubernetes.driver.volumes.hostPath.app-data.options.path=/Users/vraj21/Desktop/DIS/data \
-    --conf spark.kubernetes.driver.volumes.hostPath.app-data.mount.path=/app/data \
-    --conf spark.kubernetes.executor.volumes.hostPath.app-data.options.path=/Users/vraj21/Desktop/DIS/data \
-    --conf spark.kubernetes.executor.volumes.hostPath.app-data.mount.path=/app/data \
-  )
   K8S_VOLUME_CONF=( \
     --conf spark.kubernetes.driver.volumes.emptyDir.spark-event-logs.mount.path=/app/logs/spark-events \
     --conf spark.kubernetes.driver.volumes.emptyDir.spark-event-logs.mount.medium= \
-    --conf spark.kubernetes.driver.volumes.hostPath.results-volume.options.path=/Users/vraj21/Desktop/DIS/data/results \
-    --conf spark.kubernetes.driver.volumes.hostPath.results-volume.mount.path=/app/data/results \
-    --conf spark.kubernetes.executor.volumes.hostPath.results-volume.options.path=/Users/vraj21/Desktop/DIS/data/results \
-    --conf spark.kubernetes.executor.volumes.hostPath.results-volume.mount.path=/app/data/results \
   )
   K8S_DRIVER_ENV_CONFS=( \
     --conf spark.kubernetes.driverEnv.SPARK_MASTER_URL_AWS="${MASTER_URL}" \
@@ -43,6 +33,9 @@ if [ "$ENVIRONMENT" = "aws" ]; then
     --conf spark.kubernetes.driverEnv.RATE_createOrder="${RATE_createOrder}" \
     --conf spark.kubernetes.driverEnv.RATE_updateInventory="${RATE_updateInventory}" \
     --conf spark.kubernetes.driverEnv.RATE_deleteOrder="${RATE_deleteOrder}" \
+    --conf spark.hadoop.fs.s3a.access.key="${AWS_ACCESS_KEY_ID}" \
+    --conf spark.hadoop.fs.s3a.secret.key="${AWS_SECRET_ACCESS_KEY}" \
+    --conf spark.hadoop.fs.s3a.endpoint="s3.${AWS_REGION}.amazonaws.com" \
   )
 
 elif [ "$ENVIRONMENT" = "kub" ]; then
@@ -122,9 +115,9 @@ spark-submit \
   --conf spark.dynamicAllocation.enabled="${DYN_ENABLED}" \
   --conf spark.dynamicAllocation.shuffleTracking.enabled="${DYN_ENABLED}" \
   ${EXECUTOR_INSTANCES_CONF:-} \
-  "${K8S_IMAGE_CONF[@]:-}" \
-  "${K8S_DATA_VOLUME_CONF[@]:-}" \
-  "${K8S_VOLUME_CONF[@]:-}" \
+  ${K8S_IMAGE_CONF[@]:-} \
+  ${K8S_DATA_VOLUME_CONF[@]:-} \
+  ${K8S_VOLUME_CONF[@]:-} \
   --conf spark.eventLog.enabled="${SPARK_EVENT_LOG_ENABLED}" \
   --conf spark.eventLog.dir="${SPARK_EVENT_LOG_DIR}" \
   ${K8S_DRIVER_ENV_CONFS[@]:-} \

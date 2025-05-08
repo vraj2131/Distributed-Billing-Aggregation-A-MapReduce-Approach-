@@ -23,6 +23,15 @@ data:
         Mem_Buf_Limit     5MB
         Skip_Long_Lines   On
 
+    [INPUT]
+        Name              tail
+        Tag               spark_events
+        Path              /app/logs/spark-events/*.inprogress
+        Parser            none
+        DB                /var/log/flb_spark_events.db
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
     [FILTER]
         Name                kubernetes
         Match               kube.*
@@ -38,6 +47,14 @@ data:
         region            ${AWS_REGION}
         log_group_name    /kubernetes/fluent-bit-logs
         log_stream_prefix from-fluent-bit-
+        auto_create_group true
+    
+    [OUTPUT]
+        Name              cloudwatch_logs
+        Match             spark_events
+        region            ${AWS_REGION}
+        log_group_name    billing-aggregation-events
+        log_stream_prefix spark-events-
         auto_create_group true
 
     [OUTPUT]

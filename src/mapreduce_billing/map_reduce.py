@@ -1,5 +1,3 @@
-# src/mapreduce_billing/map_reduce.py
-
 """
 Core MapReduce functions for Spark billing aggregation:
 - map_records: convert each log line into (user, (duration_ms, cost))

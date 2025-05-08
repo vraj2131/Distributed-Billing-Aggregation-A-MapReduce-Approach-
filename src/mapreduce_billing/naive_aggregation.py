@@ -1,23 +1,10 @@
-# src/mapreduce_billing/naive_aggregation.py
-"""
-Naive, single-process billing aggregation:
-- Reads API log lines from a text file
-- Parses each line for user, task, and duration
-- Applies per-task rates (from environment variables RATE_<task>)
-- Sums total duration and cost per user
-- Writes results to an output file
-"""
 import os
 import argparse
 from dotenv import load_dotenv
 
 
 def load_rates():
-    """
-    Load all environment variables starting with RATE_ into a dict:
-      RATE_login=0.005  -> {'login': 0.005, ...}
-    """
-    load_dotenv()  # load from .env in working dir, if present
+    load_dotenv()  
     rates = {}
     for name, val in os.environ.items():
         if name.startswith("RATE_"):
@@ -30,11 +17,6 @@ def load_rates():
 
 
 def parse_line(line: str):
-    """
-    Parse a log line of the form:
-      timestamp user task status duration_ms
-    Returns (user, task, duration_ms)
-    """
     parts = line.strip().split()
     if len(parts) != 5:
         raise ValueError(f"Invalid log line: '{line.strip()}'")
@@ -49,12 +31,6 @@ def parse_line(line: str):
 
 
 def aggregate_naive(input_path: str):
-    """
-    Perform naive aggregation on the log file:
-      - Sum total duration per user
-      - Sum total cost per user (duration * rate)
-    Returns a dict: { user: {'total_duration_ms': int, 'total_cost': float} }
-    """
     rates = load_rates()
     totals = {}
     with open(input_path, 'r') as f:
@@ -72,10 +48,6 @@ def aggregate_naive(input_path: str):
 
 
 def main():
-    """
-    CLI entry point for naive aggregation.
-    Writes output to a file, defaulting to './data/billing.txt'.
-    """
     parser = argparse.ArgumentParser(
         description="Naive billing aggregation from API logs"
     )
@@ -91,7 +63,6 @@ def main():
 
     results = aggregate_naive(args.input_path)
 
-    # Ensure output directory exists
     out_dir = os.path.dirname(args.output_path)
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)

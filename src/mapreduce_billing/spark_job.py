@@ -32,9 +32,6 @@ def setup_logging():
 
 
 def build_spark_session(logger):
-    """
-    Build and return a SparkSession configured for dynamic allocation.
-    """
     env = os.getenv("ENVIRONMENT", "kub").lower()
     if env == "aws":
         master_url = os.getenv("SPARK_MASTER_URL_AWS")
@@ -64,7 +61,7 @@ def build_spark_session(logger):
             )
             builder = builder.config(
                 "spark.dynamicAllocation.initialExecutors",
-                os.getenv("SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS", "2")
+                os.getenv("SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS", "4")
             )
             builder = builder.config(
                 "spark.dynamicAllocation.maxExecutors",
@@ -145,7 +142,8 @@ def main():
         sc = spark.sparkContext
 
         logger.debug("Reading log lines from input path")
-        lines_rdd = sc.textFile(args.input_path)
+        # lines_rdd = sc.textFile(args.input_path)
+        lines_rdd = sc.textFile(args.input_path, 4)
 
         logger.debug("Mapping records")
         user_pairs = map_records(lines_rdd)

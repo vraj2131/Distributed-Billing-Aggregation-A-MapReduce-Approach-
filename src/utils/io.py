@@ -1,8 +1,3 @@
-# src/utils/io.py
-"""
-I/O utilities for billing aggregation pipeline.
-Provides functions to read lines from local filesystem or S3.
-"""
 import os
 from urllib.parse import urlparse
 
@@ -11,19 +6,6 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 
 def read_lines(path: str) -> list[str]:
-    """
-    Read all lines from a text file specified by a local path or an S3 URI.
-
-    Args:
-        path (str): Local filesystem path or S3 URI (e.g. 's3://bucket/key').
-
-    Returns:
-        list[str]: List of lines read from the file (without trailing newlines).
-
-    Raises:
-        FileNotFoundError: If the local file does not exist.
-        ClientError, BotoCoreError: If S3 retrieval fails.
-    """
     if path.startswith("s3://"):
         parsed = urlparse(path)
         bucket = parsed.netloc

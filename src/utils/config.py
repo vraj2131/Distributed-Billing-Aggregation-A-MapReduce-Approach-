@@ -4,6 +4,7 @@ Configuration loader for billing aggregation pipeline.
 Loads environment variables from .env and provides a centralized Config class.
 """
 import os
+import boto3
 from dotenv import load_dotenv
 
 # Load .env into environment
@@ -17,6 +18,17 @@ class Config:
     SPARK_MASTER_URL_LOCAL = os.getenv("SPARK_MASTER_URL_LOCAL")
     SPARK_MASTER_URL_LOCAL_K8S   = os.getenv("SPARK_MASTER_URL_LOCAL_K8S")
     SPARK_MASTER_URL_AWS   = os.getenv("SPARK_MASTER_URL_AWS")
+    
+    if ENVIRONMENT == "aws":
+        _eks_client = boto3.client(
+            "eks",
+            region_name=os.getenv("AWS_REGION", "us-east-2")
+        )
+        CLUSTER_NAME = os.getenv("EKS_CLUSTER_NAME")
+        if not CLUSTER_NAME:
+            raise ValueError("When ENVIRONMENT=aws you must set EKS_CLUSTER_NAME in your .env")
+        cluster_info = _eks_client.describe_cluster(name=CLUSTER_NAME)
+        SPARK_MASTER_URL_AWS = f"k8s://{cluster_info['cluster']['endpoint']}"
     
     SPARK_MASTER_URL = (
         SPARK_MASTER_URL_AWS
@@ -43,7 +55,7 @@ class Config:
         if ENVIRONMENT in ("kub", "aws") else None
     )
     SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS  = (
-        os.getenv("SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS", "2")
+        os.getenv("SPARK_DYNAMIC_ALLOCATION_INITIAL_EXECUTORS", "4")
         if ENVIRONMENT in ("kub", "aws") else None
     )
     SPARK_DYNAMIC_ALLOCATION_MAX_EXECUTORS      = (
@@ -100,7 +112,17 @@ class Config:
     # AWS credentials (only used when ENVIRONMENT='aws')
     AWS_ACCESS_KEY_ID     = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-    AWS_REGION            = os.getenv("AWS_REGION", "us-east-1")
+    AWS_REGION            = os.getenv("AWS_REGION", "us-east-2")
+    
+    SPARK_HADOOP_CONF = {
+        "spark.hadoop.fs.s3a.impl":             "org.apache.hadoop.fs.s3a.S3AFileSystem",
+        "spark.hadoop.fs.s3a.access.key":       AWS_ACCESS_KEY_ID,
+        "spark.hadoop.fs.s3a.secret.key":       AWS_SECRET_ACCESS_KEY,
+        "spark.hadoop.fs.s3a.endpoint.region":  AWS_REGION,
+    }
+    
+    SPARK_K8S_IMAGE       = os.getenv("SPARK_K8S_IMAGE", "distributed-billing-spark:latest")
+    SPARK_K8S_UPLOAD_PATH = os.getenv("SPARK_K8S_UPLOAD_PATH", "/tmp/spark-upload")
 
     # Rates per API task (from RATE_<task> env vars)
     RATES = {

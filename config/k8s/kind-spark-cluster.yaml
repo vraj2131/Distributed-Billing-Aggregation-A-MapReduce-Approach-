@@ -1,4 +1,3 @@
-# kind-spark-5workers.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -10,7 +9,7 @@ nodes:
       - containerPort: 8080   # Spark master Web UI
         hostPort:      8080
         protocol:      TCP
-      - containerPort: 4040   # Driver UI (first app)
+      - containerPort: 4040   # Driver UI 
         hostPort:      4040
         protocol:      TCP
       - containerPort: 18080  # History Server UI

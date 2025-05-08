@@ -7,6 +7,9 @@ spec:
   backoffLimit: 0
   ttlSecondsAfterFinished: 3600
   template:
+    metadata:
+      labels:
+        app: billing-aggregation
     spec:
       serviceAccountName: spark-serviceaccount
       restartPolicy: Never
@@ -14,20 +17,20 @@ spec:
         - name: app-env
           configMap:
             name: app-env
-        - name: data
-          hostPath:
-            path: /Users/vraj21/Desktop/DIS/data
-            type: DirectoryOrCreate
+        - name: aws-creds
+          secret:
+            secretName: aws-creds
         - name: spark-event-logs
-          hostPath:
-            path: /Users/vraj21/Desktop/DIS/logs/spark-events   
-            type: DirectoryOrCreate
-        - name: results
-          hostPath:
-            path: /Users/vraj21/Desktop/DIS/data/results
-            type: DirectoryOrCreate
+          emptyDir: {}
         - name: spark-upload
           emptyDir: {}
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+        - name: var-log-containers
+          hostPath:
+            path: /var/lib/docker/containers
+            type: Directory
       containers:
         - name: spark-submit
           image: distributed-billing-spark:latest
@@ -45,14 +48,28 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-env
+            - secretRef:
+                name: aws-creds
           volumeMounts:
-            - name: data
-              mountPath: /app/data
-            - name: results
-              mountPath: /app/data/results
-            # Spark event logs directory
             - name: spark-event-logs
               mountPath: /app/logs/spark-events
             - name: spark-upload
               mountPath: /tmp/spark-upload
           command: ["/bin/bash", "-c", "/app/scripts/submit_spark_job.sh"]
+        - name: fluent-bit
+          image: amazon/aws-for-fluent-bit:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-creds
+                  key: AWS_REGION
+          volumeMounts:
+            - name: spark-event-logs
+              mountPath: /app/logs/spark-events
+            - name: var-log-containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc
