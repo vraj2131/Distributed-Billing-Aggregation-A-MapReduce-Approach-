@@ -46,8 +46,6 @@ docker/spark/__pycache__/
 .DS_Store
 Thumbs.db
 
-# Environment files
-.env
 
 # Test outputs
 tests/__pycache__/
