@@ -28,7 +28,6 @@ var/
 *.egg
 
 # PySpark / Spark
-logs/
 *.log
 *.out
 *.err
@@ -53,4 +52,4 @@ Thumbs.db
 # Test outputs
 tests/__pycache__/
 
-*.txt
+
